@@ -2429,12 +2429,22 @@ impl Decimal {
         } else if self.scale() == 0 {
             // An integer to float conversion rounds to nearest, ties to even.
             mantissa as f64
+        } else if self.hi == 0 && self.mid < (1 << 21) && self.scale() <= 22 {
+            // The mantissa is below 2^53 and 10^scale is at most 10^22, so both operands are
+            // exact in f64 and a single division already yields the nearest f64.
+            (mantissa as f64) / POWERS_10_F64[self.scale() as usize]
         } else {
             scaled_mantissa_to_f64(mantissa, self.scale())
         };
         if self.is_sign_negative() { -magnitude } else { magnitude }
     }
 }
+
+/// `10^n` for `n` in `0..=22`, the powers of ten that are exact in an `f64`.
+const POWERS_10_F64: [f64; 23] = [
+    1e0, 1e1, 1e2, 1e3, 1e4, 1e5, 1e6, 1e7, 1e8, 1e9, 1e10, 1e11, 1e12, 1e13, 1e14, 1e15, 1e16, 1e17, 1e18, 1e19, 1e20,
+    1e21, 1e22,
+];
 
 /// `5^n` for `n` in `0..=28`.
 const POWERS_5_U128: [u128; 29] = {
