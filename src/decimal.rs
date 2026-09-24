@@ -2427,8 +2427,13 @@ impl Decimal {
         let magnitude = if mantissa == 0 {
             0.0
         } else if self.scale() == 0 {
-            // An integer to float conversion rounds to nearest, ties to even.
-            mantissa as f64
+            // An integer to float conversion rounds to nearest, ties to even. The 64-bit
+            // conversion is a single instruction where the 128-bit one is a library call.
+            if self.hi == 0 {
+                (mantissa as u64) as f64
+            } else {
+                mantissa as f64
+            }
         } else if self.hi == 0 && self.mid < (1 << 21) && self.scale() <= 22 {
             // The mantissa is below 2^53 and 10^scale is at most 10^22, so both operands are
             // exact in f64 and a single division already yields the nearest f64.
@@ -2489,7 +2494,8 @@ fn scaled_mantissa_to_f64(mantissa: u128, scale: u32) -> f64 {
     // is a normal f64 and the product is exact.
     let exponent = excess as i32 - shift as i32 - scale as i32;
     let power_of_two = f64::from_bits(((exponent + 1023) as u64) << 52);
-    (significand as f64) * power_of_two
+    // The significand is at most 2^53, so the 64-bit conversion is exact and a single instruction.
+    ((significand as u64) as f64) * power_of_two
 }
 
 impl ToPrimitive for Decimal {
