@@ -290,6 +290,7 @@ impl Buf24 {
         ((self.data[5] as u64) << 32) | (self.data[4] as u64)
     }
 
+    #[allow(dead_code)]
     pub fn set_high64(&mut self, value: u64) {
         self.data[5] = (value >> 32) as u32;
         self.data[4] = value as u32;
